@@ -37,6 +37,8 @@ public class App {
     private static int numbImages = 3;
     private static int width = (int)(percent*176);
     private static int height =(int)(percent*144);
+
+    private static int seed = 10;
     private static int finalLayer = 1024;
 
 
@@ -59,7 +61,7 @@ public class App {
      */
     private static MultiLayerConfiguration generator() {
         MultiLayerConfiguration conf = new NeuralNetConfiguration.Builder()
-                .seed(42)
+                .seed(seed)
                 .updater(UPDATER)
                 .gradientNormalization(GradientNormalization.RenormalizeL2PerLayer)
                 .gradientNormalizationThreshold(GRADIENT_THRESHOLD)
@@ -89,7 +91,7 @@ public class App {
 
     private static MultiLayerConfiguration discriminator() {
         MultiLayerConfiguration conf = new NeuralNetConfiguration.Builder()
-                .seed(42)
+                .seed(seed)
                 .updater(UPDATER)
                 .gradientNormalization(GradientNormalization.RenormalizeL2PerLayer)
                 .gradientNormalizationThreshold(GRADIENT_THRESHOLD)
@@ -108,7 +110,7 @@ public class App {
         Layer[] layers = ArrayUtils.addAll(genLayers, disLayers);
 
         MultiLayerConfiguration conf = new NeuralNetConfiguration.Builder()
-                .seed(42)
+                .seed(seed)
                 .updater(UPDATER)
                 .gradientNormalization(GradientNormalization.RenormalizeL2PerLayer)
                 .gradientNormalizationThreshold(GRADIENT_THRESHOLD)
@@ -142,12 +144,15 @@ public class App {
 
         int j = 0;
         while (true) {
+
+                //record how many generations have passed
                 j++;
                 if (j%5 == 0)
                 System.out.println(j);
+
                 // generate data
                 INDArray real = new NDArray(data);
-            int batchSize = (int)real.shape()[0];
+                int batchSize = (int)real.shape()[0];
 
                 INDArray fakeIn = Nd4j.rand(new int[]{batchSize,  64});
                 INDArray fake = gan.activateSelectedLayers(0, gen.getLayers().length - 1, fakeIn);
@@ -170,9 +175,6 @@ public class App {
 
 
 
-                // Copy the GANs generator to gen.
-                //updateGen(gen, gan);
-
                 if (j % 10 == 1) {
                     System.out.println("Iteration " + j + " Visualizing...");
                     INDArray[] samples = new INDArray[numbImages];
@@ -191,6 +193,7 @@ public class App {
         }
     }
 
+    //copies the random setups of the gen and dis to the gan network
     private static void copyParams(MultiLayerNetwork gen, MultiLayerNetwork dis, MultiLayerNetwork gan) {
         int genLayerCount = gen.getLayers().length;
         for (int i = 0; i < gan.getLayers().length; i++) {
@@ -202,11 +205,6 @@ public class App {
         }
     }
 
-    private static void updateGen(MultiLayerNetwork gen, MultiLayerNetwork gan) {
-        for (int i = 0; i < gen.getLayers().length; i++) {
-            gen.getLayer(i).setParams(gan.getLayer(i).params());
-        }
-    }
 
     private static void updateGan(MultiLayerNetwork gen, MultiLayerNetwork dis, MultiLayerNetwork gan) {
         int genLayerCount = gen.getLayers().length;
@@ -218,7 +216,7 @@ public class App {
     private static void visualize(INDArray[] samples) {
         if (frame == null) {
             frame = new JFrame();
-            frame.setTitle("Viz");
+            frame.setTitle("Visualiser");
             frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
             frame.setLayout(new BorderLayout());
 
@@ -239,6 +237,7 @@ public class App {
         frame.pack();
     }
 
+    //gets an image (RGB)
     private static JLabel getImage(INDArray tensor) {
         BufferedImage bi = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         for (int i = 0; i < height*width;i++){
